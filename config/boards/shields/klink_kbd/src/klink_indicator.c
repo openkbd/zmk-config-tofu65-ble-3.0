@@ -15,6 +15,7 @@
 #include <zmk/events/hid_indicators_changed.h>
 #include <zmk/keymap.h>
 #include <zmk/split/bluetooth/peripheral.h>
+#include <zmk/usb.h>
 
 #include <math.h>
 
@@ -155,7 +156,7 @@ void led_process_thread(void) {
                 return;
             }
 
-            if ((led_timer_steps & 0xf) == 0xf) { // every 16*20 = 320ms
+            if ((led_timer_steps & 0xf) == 0xf) {
                 indicator_state.flash_times--;
                 uint8_t color_bits = profile_color_bits[indicator_state.active_device];
                 switch ((led_timer_steps >> 4) & 0x3) {
@@ -178,7 +179,7 @@ void led_process_thread(void) {
                 }
                 if (indicator_state.flash_times == 0) indicator_state.connection = 0;
             }
-        } else if (indicator_state.battery < 10) {
+        } else if ( (indicator_state.battery <= 10) && (zmk_usb_is_powered() == 0) ) {
             if ((led_timer_steps & 0x1f) == 0xf) set_indicator_color(0b001);
             else if ((led_timer_steps & 0x1f) == 0x1f) set_indicator_color(0);
         } else {
@@ -198,7 +199,6 @@ K_THREAD_DEFINE(led_process_tid, 1024, led_process_thread, NULL, NULL, NULL, K_L
 
 void klink_indicator_init_thread(void) {
     indicator_state.connection = 1;
-    // zmk_ble_set_device_name("Tofu60 v3.0z BLE");
     indicator_state.battery = 111;
 }
 K_THREAD_DEFINE(klink_indicator_init_tid, 1024, klink_indicator_init_thread, NULL, NULL, NULL, K_LOWEST_APPLICATION_THREAD_PRIO,
